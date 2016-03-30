@@ -1,0 +1,88 @@
+#!/usr/bin/env bash -e
+
+[ -t 1 ] && TTY="-t"
+
+usage () {
+  echo Usage: $0 TODO
+  exit 1
+}
+
+STATE=~/.opam-docker
+SOURCE=~/src/git
+REPO=ocaml/opam
+ARCH=x86_64
+DISTRO=debian
+COMPILER_VERSION=4.02.3
+JOBS=2
+DRY=
+while getopts "a:d:v:j:n" o; do
+  case "${o}" in
+    "a") ARCH="${OPTARG}" ;;
+    "d") DISTRO="${OPTARG}" ;;
+    "v") COMPILER_VERSION="${OPTARG}" ;;
+    "j") JOBS=${OPTARG} ;;
+    "n") DRY="echo" ;;
+    *) usage ;;
+  esac
+done
+
+PROJECT=${@:$OPTIND:1}
+[ -n "${PROJECT}" ] || PROJECT="default"
+
+SRCDIR=${@:$OPTIND+1:1}
+[ -n "${SRCDIR}" ] || SRCDIR="${SOURCE}"
+
+calculate_tag () {
+  case "${ARCH},${DISTRO}" in
+    "x86_64,ubuntu") LTAG="ubuntu-15.10" ;;
+    "x86_64,debian") LTAG="debian-stable" ;;
+    "arm,debian") LTAG="raspbian-7" ;;
+    *) echo "Unknown (arch ${ARCH} / distro ${DISTRO}) combination" ;;
+  esac
+  TAG="${LTAG}_ocaml-${COMPILER_VERSION}"
+}
+
+container_name () {
+  LABEL="org.ocaml.opam.type=local"
+  NAME="opam-${PROJECT}"
+}
+
+echo ARCH=${ARCH} DISTRO=${DISTRO} COMPILER_VERSION=${COMPILER_VERSION}
+calculate_tag
+container_name
+echo TAG ${TAG}
+echo PROJECT ${PROJECT}
+echo NAME ${NAME}
+echo LABEL ${LABEL}
+echo SOURCE DIR ${SOURCE}
+echo PROJECT PATH ${SRCDIR}
+
+SRCDIR_IN_CONTAINER=${SRCDIR#$SOURCE}
+
+if [ "${SRCDIR_IN_CONTAINER}" = "${SRCDIR}" ]; then
+  echo The project source directory must be a subdirectory of ${SOURCE}
+  exit 1
+fi
+
+[ -d "${STATE}" ] || mkdir -p "${STATE}"
+
+CONTAINER=`docker ps -q --filter=name=${NAME}`
+CMDLINE="-v ${SOURCE}:/home/opam/src"
+if [ -e "${SRCDIR}/opam" ]; then
+  CMDLINE="$CMDLINE -v ${SRCDIR}:/home/opam/psrc"
+fi
+
+if [ -n "${CONTAINER}" ]; then
+  echo Project ${PROJECT} already exists.
+  echo TODO something here.
+  exit 1
+else
+  ${DRY} docker pull ${REPO}:${TAG}
+  ${DRY} docker run --name ${NAME} ${CMDLINE} -d --restart=unless-stopped ${REPO}:${TAG} tail -f /dev/null || \
+    (printf "docker run failed\n" && exit 1)
+  if [ -e "${SRCDIR}/opam" ]; then
+    ${DRY} docker exec -i ${NAME} opam pin --yes -n add ${NAME} /home/opam/psrc
+    ${DRY} docker exec -i ${NAME} opam depext -u ${NAME}
+    ${DRY} docker exec -i ${NAME} opam install -y -v -j ${JOBS} --deps-only ${NAME}
+  fi
+fi
