@@ -1,88 +1,137 @@
 #!/usr/bin/env bash -e
 
-[ -t 1 ] && TTY="-t"
-
 usage () {
   echo Usage: $0 TODO
   exit 1
 }
 
 STATE=~/.opam-docker
-SOURCE=~/src/git
 REPO=ocaml/opam
 ARCH=x86_64
 DISTRO=debian
-COMPILER_VERSION=4.02.3
+VERSION=4.02.3
 JOBS=2
 DRY=
+
 while getopts "a:d:v:j:n" o; do
   case "${o}" in
     "a") ARCH="${OPTARG}" ;;
     "d") DISTRO="${OPTARG}" ;;
-    "v") COMPILER_VERSION="${OPTARG}" ;;
+    "v") VERSION="${OPTARG}" ;;
     "j") JOBS=${OPTARG} ;;
     "n") DRY="echo" ;;
     *) usage ;;
   esac
 done
 
-PROJECT=${@:$OPTIND:1}
-[ -n "${PROJECT}" ] || PROJECT="default"
-
-SRCDIR=${@:$OPTIND+1:1}
-[ -n "${SRCDIR}" ] || SRCDIR="${SOURCE}"
-
-calculate_tag () {
-  case "${ARCH},${DISTRO}" in
-    "x86_64,ubuntu") LTAG="ubuntu-15.10" ;;
-    "x86_64,debian") LTAG="debian-stable" ;;
-    "arm,debian") LTAG="raspbian-7" ;;
-    *) echo "Unknown (arch ${ARCH} / distro ${DISTRO}) combination" ;;
-  esac
-  TAG="${LTAG}_ocaml-${COMPILER_VERSION}"
-}
-
-container_name () {
-  LABEL="org.ocaml.opam.type=local"
-  NAME="opam-${PROJECT}"
-}
-
-echo ARCH=${ARCH} DISTRO=${DISTRO} COMPILER_VERSION=${COMPILER_VERSION}
-calculate_tag
-container_name
-echo TAG ${TAG}
-echo PROJECT ${PROJECT}
-echo NAME ${NAME}
-echo LABEL ${LABEL}
-echo SOURCE DIR ${SOURCE}
-echo PROJECT PATH ${SRCDIR}
-
-SRCDIR_IN_CONTAINER=${SRCDIR#$SOURCE}
-
-if [ "${SRCDIR_IN_CONTAINER}" = "${SRCDIR}" ]; then
-  echo The project source directory must be a subdirectory of ${SOURCE}
-  exit 1
-fi
-
 [ -d "${STATE}" ] || mkdir -p "${STATE}"
+[ -t 1 ] && TTY="-t"
+case "${ARCH},${DISTRO}" in
+  "x86_64,ubuntu") LTAG="ubuntu-15.10" ;;
+  "x86_64,debian") LTAG="debian-stable" ;;
+  "arm,debian") LTAG="raspbian-8" ;;
+  *) echo "Unknown (arch ${ARCH} / distro ${DISTRO}) combination"; exit 1;;
+esac
+TAG="${LTAG}_ocaml-${VERSION}"
+CMD=${@:$OPTIND:1}
+PROJECT=${@:$OPTIND+1:1}
+[ -n "${PROJECT}" ] || PROJECT="default"
+NAME="opam-${PROJECT}"
+LABEL="org.ocaml.opam.type=local"
 
-CONTAINER=`docker ps -q --filter=name=${NAME}`
-CMDLINE="-v ${SOURCE}:/home/opam/src"
-if [ -e "${SRCDIR}/opam" ]; then
-  CMDLINE="$CMDLINE -v ${SRCDIR}:/home/opam/psrc"
-fi
+run_shell () {
+  ${DRY} docker exec -i ${TTY} ${NAME} bash
+}
 
-if [ -n "${CONTAINER}" ]; then
-  echo Project ${PROJECT} already exists.
-  echo TODO something here.
-  exit 1
-else
-  ${DRY} docker pull ${REPO}:${TAG}
-  ${DRY} docker run --name ${NAME} ${CMDLINE} -d --restart=unless-stopped ${REPO}:${TAG} tail -f /dev/null || \
+case $CMD in
+init)
+  SRCDIR=${@:$OPTIND+2:1}
+  if [ "${SRCDIR}" = "" ]; then
+    echo "Usage: $0 init <opam name> <source directory>"
+    echo TODO usage function
+    exit 1
+  fi
+  if [ ! -d "${SRCDIR}" ]; then
+    echo ${SRCDIR} does not exist.
+    exit 1
+  fi
+  #echo ARCH=${ARCH} DISTRO=${DISTRO} VERSION=${VERSION}
+  #echo TAG ${TAG}
+  #echo PROJECT ${PROJECT}
+  #echo NAME ${NAME}
+  #echo PROJECT PATH ${SRCDIR}
+  CONTAINER=`docker ps -q --filter=name=${NAME}`
+  CMDLINE="-v ${SRCDIR}:/home/opam/src"
+  if [ -n "${CONTAINER}" ]; then
+    echo ${PROJECT} already exists, resetting state.
+    ${DRY} docker stop -t=1 ${NAME} > /dev/null
+    ${DRY} docker rm ${NAME}
+  fi
+#  ${DRY} docker pull ${REPO}:${TAG}
+  ${DRY} docker run --name ${NAME} ${CMDLINE} ${TTY} ${TTY} -d \
+    -l org.ocaml.opam.srcdir=${SRCDIR} \
+    -l org.ocaml.opam.arch=${ARCH} \
+    -l org.ocaml.opam.distro=${DISTRO} \
+    -l org.ocaml.opam.version=${VERSION} \
+    -l ${LABEL} \
+    --restart=unless-stopped ${REPO}:${TAG} tail -f /dev/null || \
     (printf "docker run failed\n" && exit 1)
   if [ -e "${SRCDIR}/opam" ]; then
-    ${DRY} docker exec -i ${NAME} opam pin --yes -n add ${NAME} /home/opam/psrc
-    ${DRY} docker exec -i ${NAME} opam depext -u ${NAME}
-    ${DRY} docker exec -i ${NAME} opam install -y -v -j ${JOBS} --deps-only ${NAME}
+    ${DRY} docker exec -i ${NAME} opam pin --yes -k auto -n add ${PROJECT} /home/opam/src
+    ${DRY} docker exec -i ${NAME} opam config exec -- opam-depext -u ${PROJECT}
+    ${DRY} docker exec -i ${NAME} opam install -y -v -j ${JOBS} --deps-only ${PROJECT}
   fi
-fi
+  run_shell
+  ;;
+shell)
+  run_shell
+  ;;
+reset)
+  p=${@:$OPTIND+1:1}
+  if [ "$p" = "" ]; then
+    CONTAINERS=`docker ps -q --filter=label=${LABEL} --format="{{.Names}}"`
+    echo Resetting all containers:
+  else
+    C=`docker ps -q --filter=label=${LABEL} --filter=name=${p}`
+    if [ "$C" = "" ]; then
+      echo Unknown project $p
+      exit 1
+    else
+      echo Resetting ${p}
+    fi
+    CONTAINERS=${p}
+  fi
+  for c in ${CONTAINERS}; do
+    echo -n " ==> $c: stop..."
+    ${DRY} docker stop -t=1 ${c} > /dev/null
+    echo -n "rm..."
+    ${DRY} docker rm ${c} > /dev/null
+    echo "ok"
+  done
+  echo " ==> done"
+  exit 0
+  ;;
+list)
+  echo Active switches:
+  C=`docker ps -q --filter=label=${LABEL} --format="{{.Names}}"`
+  for i in ${C}; do
+    x=`echo $i | sed 's,^opam-,,g'`
+    dir=`docker inspect -f '{{index .Config.Labels "org.ocaml.opam.srcdir"}}' $i`
+    distro=`docker inspect -f '{{index .Config.Labels "org.ocaml.opam.distro"}}' $i`
+    arch=`docker inspect -f '{{index .Config.Labels "org.ocaml.opam.arch"}}' $i`
+    ver=`docker inspect -f '{{index .Config.Labels "org.ocaml.opam.version"}}' $i`
+    echo " ==> $x in $dir with OCaml $ver on $distro/$arch"
+  done
+  exit 0 ;;
+save)
+  echo TODO
+  exit 1
+  ;;
+config)
+  echo TODO
+  exit 1
+  ;;
+*)
+  usage
+esac
+
