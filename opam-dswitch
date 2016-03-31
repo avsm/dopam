@@ -40,7 +40,7 @@ NAME="opam-${PROJECT}"
 LABEL="org.ocaml.opam.type=local"
 
 run_shell () {
-  ${DRY} docker exec -i ${TTY} ${NAME} bash
+  ${DRY} docker exec -i ${TTY} ${NAME} opam config exec bash
 }
 
 case $CMD in
@@ -55,11 +55,6 @@ init)
     echo ${SRCDIR} does not exist.
     exit 1
   fi
-  #echo ARCH=${ARCH} DISTRO=${DISTRO} VERSION=${VERSION}
-  #echo TAG ${TAG}
-  #echo PROJECT ${PROJECT}
-  #echo NAME ${NAME}
-  #echo PROJECT PATH ${SRCDIR}
   CONTAINER=`docker ps -q --filter=name=${NAME}`
   CMDLINE="-v ${SRCDIR}:/home/opam/src"
   if [ -n "${CONTAINER}" ]; then
@@ -67,7 +62,9 @@ init)
     ${DRY} docker stop -t=1 ${NAME} > /dev/null
     ${DRY} docker rm ${NAME}
   fi
-#  ${DRY} docker pull ${REPO}:${TAG}
+  echo Updating upstream images from ${REPO}:${TAG}...
+  ${DRY} docker pull ${REPO}:${TAG}
+  echo Starting container ${NAME}...
   ${DRY} docker run --name ${NAME} ${CMDLINE} ${TTY} ${TTY} -d \
     -l org.ocaml.opam.srcdir=${SRCDIR} \
     -l org.ocaml.opam.arch=${ARCH} \
@@ -75,7 +72,8 @@ init)
     -l org.ocaml.opam.version=${VERSION} \
     -l ${LABEL} \
     --restart=unless-stopped ${REPO}:${TAG} tail -f /dev/null || \
-    (printf "docker run failed\n" && exit 1)
+    (printf "Docker run failed\n" && exit 1)
+  echo Customising container...
   if [ -e "${SRCDIR}/opam" ]; then
     ${DRY} docker exec -i ${NAME} opam pin --yes -k auto -n add ${PROJECT} /home/opam/src
     ${DRY} docker exec -i ${NAME} opam config exec -- opam-depext -u ${PROJECT}
