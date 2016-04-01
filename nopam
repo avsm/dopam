@@ -13,6 +13,13 @@ VERSION=4.02.3
 JOBS=2
 DRY=
 
+run_shell () {
+  ${DRY} docker exec -i ${TTY} ${NAME} opam config exec bash
+}
+
+CMD=$1
+shift
+
 while getopts "a:d:v:j:n" o; do
   case "${o}" in
     "a") ARCH="${OPTARG}" ;;
@@ -23,7 +30,6 @@ while getopts "a:d:v:j:n" o; do
     *) usage ;;
   esac
 done
-
 [ -d "${STATE}" ] || mkdir -p "${STATE}"
 [ -t 1 ] && TTY="-t"
 case "${ARCH},${DISTRO}" in
@@ -33,19 +39,13 @@ case "${ARCH},${DISTRO}" in
   *) echo "Unknown (arch ${ARCH} / distro ${DISTRO}) combination"; exit 1;;
 esac
 TAG="${LTAG}_ocaml-${VERSION}"
-CMD=${@:$OPTIND:1}
-PROJECT=${@:$OPTIND+1:1}
+PROJECT=${@:$OPTIND:1}
 [ -n "${PROJECT}" ] || PROJECT="default"
 NAME="opam-${PROJECT}"
 LABEL="org.ocaml.opam.type=local"
-
-run_shell () {
-  ${DRY} docker exec -i ${TTY} ${NAME} opam config exec bash
-}
-
 case $CMD in
 init)
-  SRCDIR=${@:$OPTIND+2:1}
+  SRCDIR=${@:$OPTIND+1:1}
   if [ "${SRCDIR}" = "" ]; then
     echo "Usage: $0 init <opam name> <source directory>"
     echo TODO usage function
