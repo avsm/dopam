@@ -215,11 +215,11 @@ save)
   ;;
 update)
   echo "==> Grabbing latest dopam from GitHub"
-  t=`mktemp dopam.XXXXXXX`
-  curl -sL https://raw.githubusercontent.com/avsm/dopam/master/dopam -o $t
-  chmod 755 $t
+  t=`mktemp /tmp/dopam.XXXXXXX`
+  ${DRY} curl -sL https://raw.githubusercontent.com/avsm/dopam/master/dopam -o $t
+  ${DRY} chmod 755 $t
   echo "==> Updating local version of dopam"
-  mv $t $(readlink $BASH_SOURCE)
+  ${DRY} mv $t $(readlink $BASH_SOURCE)
   ;;
 *)
   usage
