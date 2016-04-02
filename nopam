@@ -13,7 +13,8 @@ JOBS=2
 DRY=
 
 run_shell () {
-  ${DRY} docker exec -i ${TTY} ${NAME} opam config exec bash
+  ${DRY} docker exec ${NAME} sh -c "echo 'export PS1=\"\[\033[38;5;11m\]${PROJECT}\[$(tput sgr0)\]:${DISTRO}:${ARCH}:${VERSION}:\w$ \"' > ~/.bashrc"
+  ${DRY} docker exec -i ${TTY} ${NAME} opam config exec -- sh -c "cd /home/opam/src && bash -i"
 }
 
 CMD=$1
@@ -41,6 +42,7 @@ PROJECT=${@:$OPTIND:1}
 [ -n "${PROJECT}" ] || PROJECT="default"
 NAME="opam-${PROJECT}"
 LABEL="org.ocaml.opam.type=local"
+
 case $CMD in
 init)
   SRCDIR=${@:$OPTIND+1:1}
@@ -60,9 +62,9 @@ init)
     ${DRY} docker stop -t=1 ${NAME} > /dev/null
     ${DRY} docker rm ${NAME}
   fi
-  echo Updating upstream images from ${REPO}:${TAG}...
+  echo "==> Updating upstream images from ${REPO}:${TAG}"
   ${DRY} docker pull ${REPO}:${TAG}
-  echo Starting container ${NAME}...
+  echo "==> Starting container ${NAME}"
   ${DRY} docker run --name ${NAME} ${CMDLINE} ${TTY} ${TTY} -d \
     -l org.ocaml.opam.srcdir=${SRCDIR} \
     -l org.ocaml.opam.arch=${ARCH} \
@@ -71,8 +73,8 @@ init)
     -l ${LABEL} \
     --restart=unless-stopped ${REPO}:${TAG} tail -f /dev/null || \
     (printf "Docker run failed\n" && exit 1)
-  echo Customising container...
   if [ -e "${SRCDIR}/opam" ]; then
+    echo "==> echo Customising container with pins"
     ${DRY} docker exec -i ${NAME} opam pin --yes -k auto -n add ${PROJECT} /home/opam/src
     ${DRY} docker exec -i ${NAME} opam config exec -- opam-depext -u ${PROJECT}
     ${DRY} docker exec -i ${NAME} opam install -y -v -j ${JOBS} --deps-only ${PROJECT}
@@ -86,14 +88,14 @@ reset)
   p=${@:$OPTIND+1:1}
   if [ "$p" = "" ]; then
     CONTAINERS=`docker ps -q --filter=label=${LABEL} --format="{{.Names}}"`
-    echo Resetting all containers:
+    echo "==> Resetting all containers:"
   else
     C=`docker ps -q --filter=label=${LABEL} --filter=name=${p}`
     if [ "$C" = "" ]; then
       echo Unknown project $p
       exit 1
     else
-      echo Resetting ${p}
+      echo "==> Resetting ${p}"
     fi
     CONTAINERS=${p}
   fi
@@ -120,10 +122,6 @@ list)
   done
   exit 0 ;;
 save)
-  echo TODO
-  exit 1
-  ;;
-config)
   echo TODO
   exit 1
   ;;
