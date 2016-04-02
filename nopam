@@ -12,11 +12,6 @@ VERSION=4.02.3
 JOBS=2
 DRY=
 
-run_shell () {
-  ${DRY} docker exec ${NAME} sh -c "echo 'export PS1=\"\[\033[38;5;11m\]${PROJECT}\[$(tput sgr0)\]:${DISTRO}:${ARCH}:${VERSION}:\w$ \"' > ~/.bashrc"
-  ${DRY} docker exec -i ${TTY} ${NAME} opam config exec -- sh -c "cd /home/opam/src && bash -i"
-}
-
 CMD=$1
 shift
 
@@ -43,6 +38,11 @@ PROJECT=${@:$OPTIND:1}
 NAME="opam-${PROJECT}"
 LABEL="org.ocaml.opam.type=local"
 
+run_shell () {
+  ${DRY} docker exec ${NAME} sh -c "echo 'export PS1=\"\[\033[38;5;11m\]${PROJECT}\[$(tput sgr0)\]:${DISTRO}:${ARCH}:${VERSION}:\w$ \"' > ~/.bashrc"
+  ${DRY} docker exec -i ${TTY} ${NAME} opam config exec -- sh -c "cd /home/opam/src && bash -i"
+}
+
 case $CMD in
 init)
   SRCDIR=${@:$OPTIND+1:1}
@@ -56,7 +56,7 @@ init)
     exit 1
   fi
   CONTAINER=`docker ps -q --filter=name=${NAME}`
-  CMDLINE="-v ${SRCDIR}:/home/opam/src"
+  CMDLINE="-v $HOME/.gitconfig:/home/opam/.gitconfig -v ${SRCDIR}:/home/opam/src"
   if [ -n "${CONTAINER}" ]; then
     echo ${PROJECT} already exists, resetting state.
     ${DRY} docker stop -t=1 ${NAME} > /dev/null
@@ -92,7 +92,7 @@ shell)
   run_shell
   ;;
 reset)
-  p=${@:$OPTIND+1:1}
+  p=${@:$OPTIND:1}
   if [ "$p" = "" ]; then
     CONTAINERS=`docker ps -q --filter=label=${LABEL} --format="{{.Names}}"`
     echo "==> Resetting all containers:"
@@ -129,8 +129,27 @@ list)
   done
   exit 0 ;;
 save)
-  echo TODO
-  exit 1
+  p=${@:$OPTIND:1}
+  if [ "$p" = "" ]; then
+    CONTAINERS=`docker ps -q --filter=label=${LABEL} --format="{{.Names}}"`
+    echo "==> Saving all containers:"
+  else
+    C=`docker ps -q --filter=label=${LABEL} --filter=name=${p}`
+    if [ "$C" = "" ]; then
+      echo Unknown project $p
+      exit 1
+    else
+      echo "==> Saving ${p}"
+    fi
+    CONTAINERS=${p}
+  fi
+  for c in ${CONTAINERS}; do
+    echo -n " ==> $c: commit..."
+    ${DRY} docker commit -p -m saving ${c} save-${c} > /dev/null
+    echo "ok"
+  done
+  echo " ==> done"
+  exit 0
   ;;
 *)
   usage
