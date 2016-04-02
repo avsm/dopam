@@ -10,10 +10,12 @@ within a [Docker](http://docker.com) container.
 ## Installation
 
 If you do not have Homebew installed, first do this from a Terminal:
+
     sudo mkdir /usr/local/bin
     sudo chown $USER /usr/local/bin
 
 Then in your home directory:
+
     git clone https://github.com/avsm/dopam
     cp dopam/dopam /usr/local/bin/dopam
     chmod 755 /usr/local/bin/dopam
