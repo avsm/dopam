@@ -14,7 +14,7 @@
 
 usage () {
   echo "Usage:"
-  echo "  $0 init [<options>] <name> <srcdir>"
+  echo "  $0 init [<options>] [<name>] [<srcdir>]"
   echo "  $0 list"
   echo "  $0 shell [<options>] <name>"
   echo "  $0 reset [<name>]"
@@ -27,6 +27,8 @@ usage () {
   echo " -a: CPU arch (x86_64,arm)"
   echo " -v: OCaml compiler version (4.01.0,4.02.3)"
   echo " -r: Custom local OPAM repository directory"
+  echo " <name>: OPAM project name (default: default)"
+  echo " <srcdir>: Local source directory (default: .)"
   exit 1
 }
 
@@ -70,18 +72,15 @@ NAME="opam-${PROJECT}"
 LABEL="org.ocaml.opam.type=local"
 
 run_shell () {
-  ${DRY} docker exec ${NAME} sh -c "echo 'export PS1=\"\[\033[38;5;11m\]${PROJECT}\[$(tput sgr0)\]:${DISTRO}:${ARCH}:${VERSION}:\w$ \"' > ~/.bashrc"
+  ${DRY} docker exec ${NAME} sh -c \
+    "echo 'export PS1=\"\[\033[38;5;11m\]${PROJECT}\[$(tput sgr0)\]:${DISTRO}:${ARCH}:${VERSION}:\w$ \"' > ~/.bashrc"
   ${DRY} docker exec -i ${TTY} ${NAME} opam config exec -- sh -c "cd /home/opam/src && bash -i"
 }
 
 case $CMD in
 init)
   SRCDIR=${@:$OPTIND+1:1}
-  if [ "${SRCDIR}" = "" ]; then
-    echo "Usage: $0 init <opam name> <source directory>"
-    echo TODO usage function
-    exit 1
-  fi
+  [ -n "$SRCDIR" ] || SRCDIR=`pwd`
   if [ ! -d "${SRCDIR}" ]; then
     echo ${SRCDIR} does not exist.
     exit 1
