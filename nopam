@@ -62,6 +62,12 @@ init)
   if [ -e "$HOME/.gitconfig" ]; then
     CMDLINE="$CMDLINE -v $HOME/.gitconfig:/home/opam/.gitconfig"
   fi
+  if [ -d "$HOME/.ssh" ]; then
+    CMDLINE="$CMDLINE -v $HOME/.ssh:/home/opam/.ssh"
+  fi
+  if [ -e "$HOME/.pinata-sshd/agent_socket_path" ]; then
+    CMDLINE="$CMDLINE $(pinata-ssh-mount)"
+  fi
   if [ "$OPAM_REPO" != "" ]; then
     if [ -d "$OPAM_REPO" ]; then
       CMDLINE="$CMDLINE -v $OPAM_REPO:/home/opam/opam-repository"
@@ -87,7 +93,7 @@ init)
     -l ${LABEL} \
     --restart=unless-stopped ${REPO}:${TAG} tail -f /dev/null || \
     (printf "Docker run failed\n" && exit 1)
-  if [ $OPAM_UPDATE_REQUIRED -ne 0 ]; then
+  if [ -n "$OPAM_UPDATE_REQUIRED" ]; then
     echo "==> Updating OPAM repository"
     ${DRY} docker exec -i ${NAME} opam update -uy
   fi
