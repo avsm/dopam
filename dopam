@@ -29,7 +29,7 @@ usage () {
   echo " -j: number of concurrent OPAM jobs"
   echo " -d: Distro (debian,ubuntu,centos,fedora,alpine)"
   echo " -a: CPU arch (x86_64,arm)"
-  echo " -v: OCaml compiler version (4.01.0,4.02.3)"
+  echo " -v: OCaml compiler version (4.01,4.02,4.03,4.03-flambda)"
   echo " -r: Custom local OPAM repository directory"
   echo " <name>: OPAM project name (default: default)"
   echo " <srcdir>: Local source directory (default: .)"
@@ -67,13 +67,20 @@ while getopts "a:d:v:j:r:n" o; do
 done
 [ -t 1 ] && TTY="-t"
 case "${ARCH},${DISTRO}" in
-  "x86_64,ubuntu") LTAG="ubuntu-15.10" ;;
-  "x86_64,debian") LTAG="debian-stable" ;;
-  "x86_64,centos") LTAG="centos-7" ;;
-  "x86_64,fedora") LTAG="fedora-23" ;;
-  "x86_64,alpine") LTAG="alpine-3.3" ;;
-  "arm,debian") LTAG="raspbian-8" ;;
-  *) echo "Unknown (arch ${ARCH} / distro ${DISTRO}) combination"; exit 1;;
+"x86_64,ubuntu") LTAG="ubuntu-15.10" ;;
+"x86_64,debian") LTAG="debian-stable" ;;
+"x86_64,centos") LTAG="centos-7" ;;
+"x86_64,fedora") LTAG="fedora-23" ;;
+"x86_64,alpine") LTAG="alpine-3.3" ;;
+"arm,debian") LTAG="raspbian-8" ;;
+*) echo "Unknown (arch ${ARCH} / distro ${DISTRO}) combination"; exit 1;;
+esac
+case "${VERSION}" in
+4.00*) VERSION="4.00.1" ;;
+4.01*) VERSION="4.01.0" ;;
+4.02*) VERSION="4.02.3" ;;
+4.03*-flambda) VERSION="4.03.0_trunk_flambda" ;;
+4.03*) VERSION="4.03.0_trunk" ;;
 esac
 TAG="${LTAG}_ocaml-${VERSION}"
 PROJECT=${@:$OPTIND:1}
@@ -95,6 +102,7 @@ init)
     echo ${SRCDIR} does not exist.
     exit 1
   fi
+  echo "==> dopam init $PROJECT from $SRCDIR to image $REPO:$TAG"
   CONTAINER=`docker ps -q --filter=name=${NAME}`
   CMDLINE="-v ${SRCDIR}:/home/opam/src"
   if [ -e "$HOME/.gitconfig" ]; then
