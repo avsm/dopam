@@ -9,7 +9,7 @@ within a [Docker](http://docker.com) container.
 
 `dopam` supports simultaneously running a variety of OCaml versions (4.01,4.02,4.03,4.03-flambda),
 many distributions (Debian, Ubuntu, CentOS, Fedora, Alpine) and multiple CPU
-architectures (x86_64, ARM) and so on.
+architectures (x86/64, ARM) and so on.
 
 ## Installation
 
@@ -49,6 +49,10 @@ To get started quickly:
   new images with those changes.  Try not to overly use this though,
   as containers are meant to be stateless.
 - `dopam reset` will remove containers so that they can be rebuilt.
+- Your `~/.gitconfig` and `~/.ssh` will be mapped into the container.
+  If you are running [docker-ssh-agent-forward](https://github.com/avsm/docker-ssh-agent-forward)
+  then the agent socket will also be forwarded inside the container so you can
+  pull/push repos that need authentication.
 
 ### Man page
 
