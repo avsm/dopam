@@ -5,7 +5,6 @@ usage () {
   exit 1
 }
 
-STATE=~/.opam-docker
 REPO=ocaml/opam
 ARCH=x86_64
 DISTRO=debian
@@ -30,7 +29,6 @@ while getopts "a:d:v:j:n" o; do
     *) usage ;;
   esac
 done
-[ -d "${STATE}" ] || mkdir -p "${STATE}"
 [ -t 1 ] && TTY="-t"
 case "${ARCH},${DISTRO}" in
   "x86_64,ubuntu") LTAG="ubuntu-15.10" ;;
