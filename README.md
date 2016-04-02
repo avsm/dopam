@@ -31,7 +31,8 @@ To get started quickly:
 - change to a source directory of an OPAM project
   file) and run `dopam init`.  This will create a `default` container that
   mounts your project into a Debian image and pins the local
-  source code.
+  source code.  You can edit the source code on your Mac as normal, and
+  run `make` from within the container.
 - `dopam init` drops you into a shell within the container.
   You can get back with `dopam shell` or open concurrent shells.
 - Choose another compiler version or distro with command line
