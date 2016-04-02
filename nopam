@@ -1,7 +1,32 @@
 #!/usr/bin/env bash -e
+# (c) Copyright 2016 Anil Madhavapeddy <anil@recoil.org>
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
 
 usage () {
-  echo Usage: $0 TODO
+  echo "Usage:"
+  echo "  $0 init [<options>] <name> <srcdir>"
+  echo "  $0 list"
+  echo "  $0 shell [<options>] <name>"
+  echo "  $0 reset [<name>]"
+  echo
+  echo "General options:"
+  echo " -n: dry run, just echo commands"
+  echo " -j: number of concurrent jobs"
+  echo "Init options:"
+  echo " -d: Distro (debian,ubuntu,centos,fedora,alpine)"
+  echo " -a: CPU arch (x86_64,arm)"
+  echo " -v: OCaml compiler version (4.01.0,4.02.3)"
+  echo " -r: Custom local OPAM repository directory"
   exit 1
 }
 
@@ -10,7 +35,7 @@ ARCH=x86_64
 DISTRO=debian
 VERSION=4.02.3
 OPAM_REPO=
-JOBS=2
+JOBS=${JOBS:-2}
 DRY=
 
 CMD=$1
@@ -24,6 +49,7 @@ while getopts "a:d:v:j:r:n" o; do
     "v") VERSION="${OPTARG}" ;;
     "j") JOBS=${OPTARG} ;;
     "n") DRY="echo" ;;
+    "h") usage ;;
     *) usage ;;
   esac
 done
@@ -31,6 +57,9 @@ done
 case "${ARCH},${DISTRO}" in
   "x86_64,ubuntu") LTAG="ubuntu-15.10" ;;
   "x86_64,debian") LTAG="debian-stable" ;;
+  "x86_64,centos") LTAG="centos-7" ;;
+  "x86_64,fedora") LTAG="fedora-23" ;;
+  "x86_64,alpine") LTAG="alpine-3.3" ;;
   "arm,debian") LTAG="raspbian-8" ;;
   *) echo "Unknown (arch ${ARCH} / distro ${DISTRO}) combination"; exit 1;;
 esac
@@ -178,4 +207,3 @@ save)
 *)
   usage
 esac
-
