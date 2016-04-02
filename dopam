@@ -13,12 +13,13 @@
 # PERFORMANCE OF THIS SOFTWARE.
 
 usage () {
+  c=`basename $0`
   echo "Usage:"
-  echo "  $0 init [<options>] [<name>] [<srcdir>]"
-  echo "  $0 list"
-  echo "  $0 shell [<options>] <name>"
-  echo "  $0 reset [<name>]"
-  echo "  $0 save [<name>]"
+  echo "  $c init [<options>] [<name>] [<srcdir>]"
+  echo "  $c list"
+  echo "  $c shell [<options>] <name>"
+  echo "  $c reset [<name>]"
+  echo "  $c save [<name>]"
   echo
   echo "General options:"
   echo " -n: dry run, just echo commands"
@@ -32,8 +33,8 @@ usage () {
   echo " <name>: OPAM project name (default: default)"
   echo " <srcdir>: Local source directory (default: .)"
   echo
-  echo "$0 reset: rebuilds all the local containers from scratch"
-  echo "$0 save: commits changes to a local image"
+  echo "$c reset: rebuilds all the local containers from scratch"
+  echo "$c save: commits changes to a local image"
   exit 1
 }
 
