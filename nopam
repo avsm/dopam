@@ -9,16 +9,18 @@ REPO=ocaml/opam
 ARCH=x86_64
 DISTRO=debian
 VERSION=4.02.3
+OPAM_REPO=
 JOBS=2
 DRY=
 
 CMD=$1
 shift
 
-while getopts "a:d:v:j:n" o; do
+while getopts "a:d:v:j:r:n" o; do
   case "${o}" in
     "a") ARCH="${OPTARG}" ;;
     "d") DISTRO="${OPTARG}" ;;
+    "r") OPAM_REPO="${OPTARG}" ;;
     "v") VERSION="${OPTARG}" ;;
     "j") JOBS=${OPTARG} ;;
     "n") DRY="echo" ;;
@@ -56,7 +58,19 @@ init)
     exit 1
   fi
   CONTAINER=`docker ps -q --filter=name=${NAME}`
-  CMDLINE="-v $HOME/.gitconfig:/home/opam/.gitconfig -v ${SRCDIR}:/home/opam/src"
+  CMDLINE="-v ${SRCDIR}:/home/opam/src"
+  if [ -e "$HOME/.gitconfig" ]; then
+    CMDLINE="$CMDLINE -v $HOME/.gitconfig:/home/opam/.gitconfig"
+  fi
+  if [ "$OPAM_REPO" != "" ]; then
+    if [ -d "$OPAM_REPO" ]; then
+      CMDLINE="$CMDLINE -v $OPAM_REPO:/home/opam/opam-repository"
+      OPAM_UPDATE_REQUIRED=1
+    else
+      echo Local OPAM repo $OPAM_REPO not found
+      exit 1
+    fi
+  fi
   if [ -n "${CONTAINER}" ]; then
     echo ${PROJECT} already exists, resetting state.
     ${DRY} docker stop -t=1 ${NAME} > /dev/null
@@ -73,8 +87,12 @@ init)
     -l ${LABEL} \
     --restart=unless-stopped ${REPO}:${TAG} tail -f /dev/null || \
     (printf "Docker run failed\n" && exit 1)
+  if [ $OPAM_UPDATE_REQUIRED -ne 0 ]; then
+    echo "==> Updating OPAM repository"
+    ${DRY} docker exec -i ${NAME} opam update -uy
+  fi
   if [ -e "${SRCDIR}/opam" ]; then
-    echo "==> echo Customising container with pins"
+    echo "==> Customising container with pins"
     ${DRY} docker exec -i ${NAME} opam pin --yes -k auto -n add ${PROJECT} /home/opam/src
     ${DRY} docker exec -i ${NAME} opam config exec -- opam-depext -u ${PROJECT}
     ${DRY} docker exec -i ${NAME} opam install -y -v -j ${JOBS} --deps-only ${PROJECT}
