@@ -18,17 +18,22 @@ usage () {
   echo "  $0 list"
   echo "  $0 shell [<options>] <name>"
   echo "  $0 reset [<name>]"
+  echo "  $0 save [<name>]"
   echo
   echo "General options:"
   echo " -n: dry run, just echo commands"
-  echo " -j: number of concurrent jobs"
+  echo
   echo "Init options:"
+  echo " -j: number of concurrent OPAM jobs"
   echo " -d: Distro (debian,ubuntu,centos,fedora,alpine)"
   echo " -a: CPU arch (x86_64,arm)"
   echo " -v: OCaml compiler version (4.01.0,4.02.3)"
   echo " -r: Custom local OPAM repository directory"
   echo " <name>: OPAM project name (default: default)"
   echo " <srcdir>: Local source directory (default: .)"
+  echo
+  echo "$0 reset: rebuilds all the local containers from scratch"
+  echo "$0 save: commits changes to a local image"
   exit 1
 }
 
@@ -41,7 +46,9 @@ JOBS=${JOBS:-2}
 DRY=
 
 CMD=$1
+[ -z "$CMD" ] && usage
 shift
+
 
 while getopts "a:d:v:j:r:n" o; do
   case "${o}" in
