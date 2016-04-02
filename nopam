@@ -82,6 +82,13 @@ init)
   run_shell
   ;;
 shell)
+  CONTAINER=`docker ps -q --filter=name=${NAME}`
+  if [ "${CONTAINER}" = "" ]; then
+    echo "Container '${NAME}' does not exist. Run:"
+    echo "    $0 init ${NAME} <src>"
+    echo "to initialise it."
+    exit 1
+  fi
   run_shell
   ;;
 reset)
