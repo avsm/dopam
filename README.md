@@ -25,8 +25,7 @@ Then in your home directory:
 To get started quickly:
 
 - change to a source directory of an OPAM project
-  (i.e. containing an `opam` file) and run
-  `dopam init`.  This will create a `default` container that
+  file) and run `dopam init`.  This will create a `default` container that
   mounts your project into a Debian image and pins the local
   source code.
 - `dopam init` drops you into a shell within the container.
@@ -40,6 +39,11 @@ To get started quickly:
 - If you have a custom OPAM repository that you wish to use,
   just specify it via `-r`:
     - `dopam init -r ~/myopamrepo -d fedora -v 4.02 proj ~/myproj`
+- `dopam list` shows all known projects.
+- `dopam save` freezes all local changes and commits them into 
+  new images with those changes.  Try not to overly use this though,
+  as containers are meant to be stateless.
+- `dopam reset` will remove containers so that they can be rebuilt.
 
 ### Man page
 
