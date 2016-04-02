@@ -7,6 +7,10 @@ command supports running it on a MacOS X computer that has no development
 tools installed.  It does this by running all of the development tools
 within a [Docker](http://docker.com) container.
 
+`dopam` supports simultaneously running a variety of OCaml versions (4.01,4.02,4.03,4.03-flambda),
+many distributions (Debian, Ubuntu, CentOS, Fedora, Alpine) and multiple CPU
+architectures (x86_64, ARM) and so on.
+
 ## Installation
 
 If you do not have Homebew installed, first do this from a Terminal:
