@@ -20,7 +20,7 @@ usage () {
   echo "  $c shell [<options>] <name>"
   echo "  $c reset [<name>]"
   echo "  $c save [<name>]"
-  echo "  $c update"
+  echo "  $c selfupdate"
   echo
   echo "General options:"
   echo " -n: dry run, just echo commands"
@@ -36,7 +36,7 @@ usage () {
   echo
   echo "$c reset: rebuilds all the local containers from scratch"
   echo "$c save: commits changes to a local image"
-  echo "$c update: updates the dopam script with latest from GitHub"
+  echo "$c selfupdate: updates the dopam script with latest from GitHub"
   exit 1
 }
 
@@ -213,7 +213,7 @@ save)
   echo " ==> done"
   exit 0
   ;;
-update)
+selfupdate)
   echo "==> Grabbing latest dopam from GitHub"
   t=`mktemp /tmp/dopam.XXXXXXX`
   ${DRY} curl -sL https://raw.githubusercontent.com/avsm/dopam/master/dopam -o $t
