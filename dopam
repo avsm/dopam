@@ -67,12 +67,17 @@ while getopts "a:d:v:j:r:n" o; do
 done
 [ -t 1 ] && TTY="-t"
 case "${ARCH},${DISTRO}" in
-"x86_64,ubuntu") LTAG="ubuntu-15.10" ;;
-"x86_64,debian") LTAG="debian-stable" ;;
-"x86_64,centos") LTAG="centos-7" ;;
-"x86_64,fedora") LTAG="fedora-23" ;;
-"x86_64,alpine") LTAG="alpine-3.3" ;;
-"arm,debian") LTAG="raspbian-8" ;;
+x86_64,ubuntu) LTAG="ubuntu-15.10" ;;
+x86_64,ubuntu*) LTAG=${DISTRO} ;;
+x86_64,debian) LTAG="debian-stable" ;;
+x86_64,debian*) LTAG=${DISTRO} ;;
+x86_64,centos) LTAG="centos-7" ;;
+x86_64,centos*) LTAG=${DISTRO} ;;
+x86_64,fedora) LTAG="fedora-23" ;;
+x86_64,fedora*) LTAG=${DISTRO} ;;
+x86_64,alpine) LTAG="alpine-3.3" ;;
+x86_64,alpine*) LTAG=${DISTRO} ;;
+arm,debian) LTAG="raspbian-8" ;;
 *) echo "Unknown (arch ${ARCH} / distro ${DISTRO}) combination"; exit 1;;
 esac
 case "${VERSION}" in
