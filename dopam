@@ -131,7 +131,7 @@ init)
   echo "==> Updating upstream images from ${REPO}:${TAG}"
   ${DRY} docker pull ${REPO}:${TAG}
   echo "==> Starting container ${NAME}"
-  ${DRY} docker run --name ${NAME} ${CMDLINE} ${TTY} ${TTY} -d \
+  ${DRY} docker run --name ${NAME} ${CMDLINE} ${TTY} -d \
     -l org.ocaml.opam.srcdir=${SRCDIR} \
     -l org.ocaml.opam.arch=${ARCH} \
     -l org.ocaml.opam.distro=${DISTRO} \
