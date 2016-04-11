@@ -131,8 +131,8 @@ init)
   if [ -n "${CONTAINER}" ]; then
     echo ${PROJECT} already exists, resetting state.
     ${DRY} docker stop -t=1 ${NAME} > /dev/null
-    ${DRY} docker rm ${NAME}
   fi
+  ${DRY} docker rm ${NAME} > /dev/null || true
   echo "==> Updating upstream images from ${REPO}:${TAG}"
   ${DRY} docker pull ${REPO}:${TAG}
   echo "==> Starting container ${NAME}"
