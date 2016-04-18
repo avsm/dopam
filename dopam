@@ -52,7 +52,6 @@ CMD=$1
 [ -z "$CMD" ] && usage
 shift
 
-
 while getopts "a:d:v:j:r:n" o; do
   case "${o}" in
     "a") ARCH="${OPTARG}" ;;
@@ -103,6 +102,7 @@ case $CMD in
 init)
   SRCDIR=${@:$OPTIND+1:1}
   [ -n "$SRCDIR" ] || SRCDIR=`pwd`
+  if [ "$SRCDIR" = "." ]; then SRCDIR=`pwd`; fi
   if [ ! -d "${SRCDIR}" ]; then
     echo ${SRCDIR} does not exist.
     exit 1
