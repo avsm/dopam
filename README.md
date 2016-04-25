@@ -49,6 +49,12 @@ To get started quickly:
   new images with those changes.  Try not to overly use this though,
   as containers are meant to be stateless.
 - `dopam reset` will remove containers so that they can be rebuilt.
+- `dopam bulk-compilers` will compile the source code with a variety
+  of OCaml compiler versions so you can test compatibility.
+- `dopam bulk-distros` will build your code on a variety of Linux
+  distributions (Debian, Ubuntu, Fedora, CentOS, Alpine, etc).  You
+  can use this to refine the `depext` tags for any system packages
+  required for your source code.
 - Your `~/.gitconfig` and `~/.ssh` will be mapped into the container.
   If you are running [docker-ssh-agent-forward](https://github.com/avsm/docker-ssh-agent-forward)
   then the agent socket will also be forwarded inside the container so you can

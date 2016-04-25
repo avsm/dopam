@@ -18,6 +18,8 @@ usage () {
   echo "  $c init [<options>] [<name>] [<srcdir>]"
   echo "  $c list"
   echo "  $c shell [<options>] <name>"
+  echo "  $c bulk-compilers [<name>] <srcdir>"
+  echo "  $c bulk-distros [<name>] <srcdir>]"
   echo "  $c reset [<name>]"
   echo "  $c save [<name>]"
   echo "  $c selfupdate"
@@ -37,17 +39,22 @@ usage () {
   echo "$c reset: rebuilds all the local containers from scratch"
   echo "$c save: commits changes to a local image"
   echo "$c selfupdate: updates the dopam script with latest from GitHub"
+  echo "$c bulk-compilers: builds the matrix of different OCaml compiler versions"
+  echo "$c bulk-distros: builds the matrix of different Linux distributions"
   exit 1
 }
 
 REPO=ocaml/opam
 ARCH=x86_64
 DISTRO=debian
+BULK_DISTROS="debian ubuntu centos fedora alpine"
+BULK_COMPILERS="4.02.3 4.03.0"
 VERSION=4.02.3
 OPAM_REPO=
 JOBS=${JOBS:-2}
 DRY=
 
+DOPAM_BIN=$0
 CMD=$1
 [ -z "$CMD" ] && usage
 shift
@@ -66,7 +73,7 @@ while getopts "a:d:v:j:r:n" o; do
 done
 [ -t 1 ] && TTY="-t"
 case "${ARCH},${DISTRO}" in
-x86_64,ubuntu) LTAG="ubuntu-15.10" ;;
+x86_64,ubuntu) LTAG="ubuntu-16.04" ;;
 x86_64,ubuntu*) LTAG=${DISTRO} ;;
 x86_64,debian) LTAG="debian-stable" ;;
 x86_64,debian*) LTAG=${DISTRO} ;;
@@ -83,8 +90,8 @@ case "${VERSION}" in
 4.00*) VERSION="4.00.1" ;;
 4.01*) VERSION="4.01.0" ;;
 4.02*) VERSION="4.02.3" ;;
-4.03*-flambda) VERSION="4.03.0_trunk_flambda" ;;
-4.03*) VERSION="4.03.0_trunk" ;;
+4.03*-flambda) VERSION="4.03.0_flambda" ;;
+4.03*) VERSION="4.03.0" ;;
 esac
 TAG="${LTAG}_ocaml-${VERSION}"
 PROJECT=${@:$OPTIND:1}
@@ -96,6 +103,23 @@ run_shell () {
   ${DRY} docker exec ${NAME} sh -c \
     "echo 'export PS1=\"\[\033[38;5;11m\]${PROJECT}\[$(tput sgr0)\]:${DISTRO}:${ARCH}:${VERSION}:\w$ \"' > ~/.bashrc"
   ${DRY} docker exec -i ${TTY} ${NAME} opam config exec -- sh -c "cd /home/opam/src && bash -i"
+}
+
+spinner()
+{
+  local pid=$1
+  local delay=0.50
+  local spinstr='|/-\'
+  tput civis;
+  while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+    local temp=${spinstr#?}
+    printf " [%c] " "$spinstr"
+    local spinstr=$temp${spinstr%"$temp"}
+    sleep $delay
+    printf "\b\b\b\b\b"
+  done
+  printf " "
+  tput cnorm;
 }
 
 case $CMD in
@@ -158,7 +182,47 @@ init)
     ${DRY} docker exec -i ${NAME} opam config exec -- opam-depext -u ${PROJECT}
     ${DRY} docker exec -i ${NAME} opam install -y -v -j ${JOBS} --deps-only ${PROJECT}
   fi
-  run_shell
+  if [ -t 1 ]; then
+    run_shell
+  fi
+  ;;
+bulk-distros)
+  SRCDIR=${@:$OPTIND+1:1}
+  [ -n "$SRCDIR" ] || SRCDIR=`pwd`
+  if [ "$SRCDIR" = "." ]; then SRCDIR=`pwd`; fi
+  if [ ! -d "${SRCDIR}" ]; then
+    echo ${SRCDIR} does not exist.
+    exit 1
+  fi
+  echo "==> Creating multi-build distro matrix for ${PROJECT} in ${SRCDIR}"
+  mkdir -p ${SRCDIR}/.dopam
+  set +e
+  for d in ${BULK_DISTROS}; do
+    echo -n " * ${PROJECT}-${d} to ${SRCDIR}/.dopam/${d}.out: "
+    (rm -f ${SRCDIR}/.dopam/${d}.*;
+     if ${DOPAM_BIN} init -d ${d} ${PROJECT}-${d} ${SRCDIR}>${SRCDIR}/.dopam/${d}.out 2>${SRCDIR}/.dopam/${d}.err; then
+       touch ${SRCDIR}/.dopam/${d}.ok; fi) &
+    spinner $!
+    if [ -e ${SRCDIR}/.dopam/${d}.ok ]; then echo " OK"; else echo ERR; fi
+  done
+  ;;
+bulk-compilers)
+  SRCDIR=${@:$OPTIND+1:1}
+  [ -n "$SRCDIR" ] || SRCDIR=`pwd`
+  if [ "$SRCDIR" = "." ]; then SRCDIR=`pwd`; fi
+  if [ ! -d "${SRCDIR}" ]; then
+    echo ${SRCDIR} does not exist.
+    exit 1
+  fi
+  echo "==> Creating multi-build compiler matrix for ${PROJECT} in ${SRCDIR}"
+  mkdir -p ${SRCDIR}/.dopam
+  set +e
+  for d in ${BULK_COMPILERS}; do
+    echo -n " * ${PROJECT}-${d} (${SRCDIR}/.dopam/${d}.log: "
+    ${DOPAM_BIN} init -c ${d} ${PROJECT}-${d} ${SRCDIR} > ${SRCDIR}/.dopam/${d}.log 2>${SRCDIR}/.dopam/${d}.err &
+    spinner $!
+    echo "done"
+  done
   ;;
 shell)
   CONTAINER=`docker ps -q --filter=name=${NAME}`
