@@ -109,10 +109,10 @@ repository to name a collection of dependencies.  These dependencies can
 include remote `git` or `hg` version-controlled trees, as well as packages that
 do not yet exist in the central OPAM repository.
 
-To do this, create a directory called `remote/` under which you place a
-standard OPAM remote.  This will most commonly look like:
+To do this, create a directory called `repo/` under which you place a
+standard OPAM repository.  This will most commonly look like:
 
-    remote/
+    repo/
       packages/
         foo.dev/
           opam
@@ -127,7 +127,7 @@ The `url` file can point to a `git` remote by placing this inside it:
 
 The branch can also point to a specific revision or tag.  See the
 [OPAM documentation](https://github.com/ocaml/opam/wiki/Packaging) for
-more information on creating custom remotes.
+more information on creating custom remote repository.
 
 ## Contact
 
