@@ -148,6 +148,10 @@ init)
     echo "==> Updating OPAM repository"
     ${DRY} docker exec -i ${NAME} opam update -uy
   fi
+  if [ -e "${SRCDIR}/repo" ]; then
+    echo "==> Adding local repository remote"
+    ${DRY} docker exec -i ${NAME} opam repo add local /home/opam/src/repo
+  fi
   if [ -e "${SRCDIR}/opam" ]; then
     echo "==> Customising container with pins"
     ${DRY} docker exec -i ${NAME} opam pin --yes -k auto -n add ${PROJECT} /home/opam/src

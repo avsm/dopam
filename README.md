@@ -83,5 +83,53 @@ dopam save: commits changes to a local image
 dopam selfupdate: updates the dopam script with latest from GitHub
 ```
 
+## Customising the package
+
+Your repository can contain OPAM extension points so that you
+can customise the packages that are installed.
+
+### OPAM file
+
+Most repositories will have a single `opam` file that describes
+the project dependencies.  If this file is present, then `dopam`
+will execute the following commands within the container:
+
+    opam pin --yes -k auto -n add <project> /home/opam/src
+    opam-depext -u <project>
+    opam install -y -v -j <njobs> --deps-only <project>
+
+This will cause all the dependencies (including system packages)
+to be installed, and the source repository should be ready to be
+built.
+
+### OPAM remote
+
+If you have more complex dependency requirements, you can also use a local OPAM
+repository to name a collection of dependencies.  These dependencies can
+include remote `git` or `hg` version-controlled trees, as well as packages that
+do not yet exist in the central OPAM repository.
+
+To do this, create a directory called `remote/` under which you place a
+standard OPAM remote.  This will most commonly look like:
+
+    remote/
+      packages/
+        foo.dev/
+          opam
+          url
+        bar.dev/
+          opam
+          url
+
+The `url` file can point to a `git` remote by placing this inside it:
+
+    git: "git://github.com/avsm/foo#my-branch
+
+The branch can also point to a specific revision or tag.  See the
+[OPAM documentation](https://github.com/ocaml/opam/wiki/Packaging) for
+more information on creating custom remotes.
+
+## Contact
+
 - *Status*: experimental, unreleased
 - *Contact*: Anil Madhavapeddy <anil@recoil.org>
