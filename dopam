@@ -219,7 +219,7 @@ bulk-compilers)
   set +e
   for d in ${BULK_COMPILERS}; do
     echo -n " * ${PROJECT}-${d} (${SRCDIR}/.dopam/${d}.log: "
-    ${DOPAM_BIN} init -c ${d} ${PROJECT}-${d} ${SRCDIR} > ${SRCDIR}/.dopam/${d}.log 2>${SRCDIR}/.dopam/${d}.err &
+    ${DOPAM_BIN} init -v ${d} ${PROJECT}-${d} ${SRCDIR} > ${SRCDIR}/.dopam/${d}.log 2>${SRCDIR}/.dopam/${d}.err &
     spinner $!
     echo "done"
   done
